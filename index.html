@@ -1,0 +1,909 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Statistik-Trainer – Temperaturen</title>
+<style>
+:root{
+  --bg:#f4f7fb;--card:#fff;--ink:#1f2937;--muted:#667085;--border:#dbe3ec;
+  --primary:#2f67b2;--primary-dark:#234f8c;--soft:#eef4fb;
+  --good-bg:#e9f8ee;--good:#237a3b;--bad-bg:#fff0f0;--bad:#a13737
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
+.wrap{max-width:1000px;margin:0 auto;padding:22px}
+h1{margin:0 0 8px;font-size:clamp(1.8rem,3vw,2.4rem)}
+.intro{margin:0 0 18px;color:var(--muted);line-height:1.45}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.stat,.data-card,.trainer-card{background:var(--card);border:1px solid var(--border);box-shadow:0 8px 24px rgba(31,41,55,.07)}
+.stat{border-radius:16px;padding:13px;text-align:center}
+.stat .label{display:block;color:var(--muted);font-size:.92rem}
+.stat .value{display:block;font-size:1.6rem;font-weight:900}
+.data-card{border-radius:18px;padding:18px;margin-bottom:16px}
+.data-title{margin:0 0 7px;font-weight:850;font-size:1.05rem}
+.helper{margin:0 0 12px;color:var(--muted);font-size:.92rem}
+.sort-area{display:grid;grid-template-columns:1fr;gap:14px}
+.sort-box{border:2px dashed #c7d2df;border-radius:15px;padding:12px;min-height:142px;background:#fbfcfe}
+.sort-box h2{margin:0 0 10px;font-size:1rem}
+.chips{display:flex;flex-wrap:wrap;gap:9px;align-content:flex-start;min-height:70px}
+.temp-chip{
+  min-width:75px;min-height:48px;padding:9px 12px;border-radius:12px;background:var(--soft);
+  border:1px solid #cfdae8;text-align:center;font-size:1.12rem;font-weight:850;
+  cursor:pointer;touch-action:manipulation;color:var(--ink)
+}
+.temp-chip.selected{outline:3px solid rgba(47,103,178,.25);border-color:var(--primary)}
+.rank-controls{display:flex;gap:7px;margin-top:5px;justify-content:center}
+.rank-move{min-width:36px;min-height:34px;border:1px solid #cbd5e1;border-radius:9px;background:#fff;font-weight:900;cursor:pointer}
+.actions{display:flex;justify-content:center;margin-top:14px}
+.next{
+  min-height:50px;border:0;border-radius:14px;background:#e8eef6;color:#26384f;
+  font:inherit;font-weight:850;padding:10px 22px;cursor:pointer;touch-action:manipulation
+}
+.trainer-card{border-radius:20px;padding:20px}
+.task-title{text-align:center;font-weight:850;margin:0 0 12px}
+.answer-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.answer-card{
+  min-height:94px;padding:10px;border-radius:14px;border:2px solid #cbd5e1;background:#f8fafc;
+  cursor:pointer;text-align:center;touch-action:manipulation;font:inherit;color:var(--ink)
+}
+.answer-card.active{border-color:var(--primary);background:#edf4ff}
+.answer-card.good{border-color:#38a169;background:var(--good-bg)}
+.answer-card.bad{border-color:#e05252;background:var(--bad-bg)}
+.answer-label{display:block;color:#475467;font-size:.9rem;font-weight:750;margin-bottom:7px}
+.answer-value{display:block;min-height:34px;font-size:1.4rem;font-weight:900}
+.input-row{max-width:520px;margin:0 auto 12px;display:flex;gap:10px}
+.current-answer{flex:1;min-height:56px;border:2px solid #b9c6d6;border-radius:14px;background:#fff;padding:10px 14px;text-align:center;font-size:1.4rem;font-weight:850}
+.check{min-width:120px;border:0;border-radius:14px;background:var(--primary);color:#fff;font:inherit;font-weight:850;cursor:pointer;padding:10px 16px;touch-action:manipulation}
+.keypad{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:520px;margin:0 auto}
+.key{min-height:62px;border:1px solid #cbd5e1;border-radius:14px;background:#f7f9fc;color:#1f2937;font:inherit;font-size:1.45rem;font-weight:850;cursor:pointer;touch-action:manipulation}
+.key.sign{background:#eef4fb}.key.clear{background:#fff0f0;color:#a13737}.key.back{background:#eef1f5}
+.feedback{min-height:50px;margin:14px auto 0;max-width:720px;padding:12px 14px;border-radius:14px;font-weight:850;text-align:center;visibility:hidden}
+.feedback.good{visibility:visible;color:var(--good);background:var(--good-bg)}
+.feedback.bad{visibility:visible;color:var(--bad);background:var(--bad-bg)}
+button:active{transform:scale(.98)}
+
+.boxplot-card{
+  margin-top:18px;
+  border-top:2px solid var(--border);
+  padding-top:18px;
+}
+.boxplot-title{
+  margin:0 0 6px;
+  text-align:center;
+  font-size:1.08rem;
+  font-weight:900;
+}
+.boxplot-help{
+  margin:0 auto 12px;
+  max-width:760px;
+  text-align:center;
+  color:var(--muted);
+  font-size:.92rem;
+  line-height:1.4;
+}
+.boxplot-stage{
+  max-width:860px;
+  margin:0 auto;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:#fff;
+  padding:10px;
+}
+#boxplotSvg{
+  display:block;
+  width:100%;
+  height:auto;
+  touch-action:none;
+  user-select:none;
+}
+.handle-buttons{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:8px;
+  max-width:860px;
+  margin:12px auto 0;
+}
+.handle-btn{
+  min-height:52px;
+  border:2px solid #cbd5e1;
+  border-radius:12px;
+  background:#f8fafc;
+  color:var(--ink);
+  padding:7px 5px;
+  font:inherit;
+  font-weight:850;
+  cursor:pointer;
+}
+.handle-btn.active{
+  border-color:var(--primary);
+  background:#edf4ff;
+  color:var(--primary-dark);
+}
+.handle-btn .small{
+  display:block;
+  font-size:.78rem;
+  color:var(--muted);
+  font-weight:750;
+}
+.boxplot-nudge{
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  margin-top:10px;
+}
+.nudge-btn{
+  min-width:118px;
+  min-height:48px;
+  border:1px solid #cbd5e1;
+  border-radius:12px;
+  background:#f7f9fc;
+  color:var(--ink);
+  font:inherit;
+  font-weight:850;
+  cursor:pointer;
+}
+.boxplot-check-row{
+  display:flex;
+  justify-content:center;
+  margin-top:12px;
+}
+.boxplot-check{
+  min-height:52px;
+  border:0;
+  border-radius:14px;
+  background:var(--primary);
+  color:#fff;
+  font:inherit;
+  font-weight:900;
+  padding:10px 24px;
+  cursor:pointer;
+}
+.boxplot-feedback{
+  min-height:48px;
+  margin:12px auto 0;
+  max-width:720px;
+  padding:11px 14px;
+  border-radius:14px;
+  text-align:center;
+  font-weight:850;
+  visibility:hidden;
+}
+.boxplot-feedback.good{
+  visibility:visible;
+  color:var(--good);
+  background:var(--good-bg);
+}
+.boxplot-feedback.bad{
+  visibility:visible;
+  color:var(--bad);
+  background:var(--bad-bg);
+}
+
+@media(max-width:720px){
+  .wrap{padding:12px}.stats{grid-template-columns:1fr}.sort-area{grid-template-columns:1fr}
+  .trainer-card{padding:14px}
+}
+@media(max-width:430px){
+  .answer-grid{grid-template-columns:1fr 1fr}.handle-buttons{grid-template-columns:1fr 1fr}.input-row{flex-direction:column}.check{width:100%;min-height:52px}
+  .keypad{grid-template-columns:repeat(3,1fr)}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Statistik-Trainer</h1>
+  <p class="intro">Bestimme die statistischen Kennwerte der Temperatur-Datenreihe.</p>
+
+  <section class="stats" aria-label="Auswertung">
+    <div class="stat"><span class="label">Richtig</span><span class="value" id="correct">0</span></div>
+    <div class="stat"><span class="label">Falsch</span><span class="value" id="wrong">0</span></div>
+    <div class="stat"><span class="label">Richtig in %</span><span class="value" id="percent">0 %</span></div>
+  </section>
+
+  <section class="data-card">
+    <p class="data-title">Temperatur-Datenreihe</p>
+    <p class="helper">Du kannst die Werte antippen oder ziehen und dir darunter eine Rangliste bilden. In der Rangliste lassen sich Werte mit ← und → verschieben.</p>
+
+    <div class="sort-area">
+      <div class="sort-box" id="sourceBox">
+        <h2>Datenreihe</h2>
+        <div class="chips" id="sourceList"></div>
+      </div>
+      <div class="sort-box" id="rankBox">
+        <h2>Rangliste</h2>
+        <div class="chips" id="rankList"></div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="next" id="nextBtn">Nächste Aufgabe</button>
+    </div>
+  </section>
+
+  <main class="trainer-card">
+    <p class="task-title">Tippe einen Kennwert an und gib das Ergebnis ein.</p>
+
+    <div class="answer-grid">
+      <button type="button" class="answer-card active" data-key="min"><span class="answer-label">Minimum</span><span class="answer-value"></span></button>
+      <button type="button" class="answer-card" data-key="max"><span class="answer-label">Maximum</span><span class="answer-value"></span></button>
+      <button type="button" class="answer-card" data-key="range"><span class="answer-label">Spannweite</span><span class="answer-value"></span></button>
+      <button type="button" class="answer-card" data-key="mode"><span class="answer-label">Modalwert</span><span class="answer-value"></span></button>
+      <button type="button" class="answer-card" data-key="median"><span class="answer-label">Median</span><span class="answer-value"></span></button>
+      <button type="button" class="answer-card" data-key="q1"><span class="answer-label">Unteres Quartil</span><span class="answer-value"></span></button>
+      <button type="button" class="answer-card" data-key="q3"><span class="answer-label">Oberes Quartil</span><span class="answer-value"></span></button>
+      <button type="button" class="answer-card" data-key="mean"><span class="answer-label">Arithmetisches Mittel</span><span class="answer-value"></span></button>
+    </div>
+
+    <div class="input-row">
+      <div class="current-answer" id="currentAnswer" aria-live="polite"></div>
+      <button type="button" class="check" id="checkBtn">Prüfen</button>
+    </div>
+
+    <div class="keypad" aria-label="Bildschirmtastatur">
+      <button type="button" class="key" data-input="7">7</button>
+      <button type="button" class="key" data-input="8">8</button>
+      <button type="button" class="key" data-input="9">9</button>
+      <button type="button" class="key sign" data-input="minus">−</button>
+
+      <button type="button" class="key" data-input="4">4</button>
+      <button type="button" class="key" data-input="5">5</button>
+      <button type="button" class="key" data-input="6">6</button>
+      <button type="button" class="key sign" data-input="comma">,</button>
+
+      <button type="button" class="key" data-input="1">1</button>
+      <button type="button" class="key" data-input="2">2</button>
+      <button type="button" class="key" data-input="3">3</button>
+      <button type="button" class="key back" data-input="back">⌫</button>
+
+      <button type="button" class="key" data-input="0">0</button>
+      <button type="button" class="key clear" data-input="clear">C</button>
+      <button type="button" class="key sign" data-input="unit">°C</button>
+    </div>
+
+
+    <section class="boxplot-card">
+      <h2 class="boxplot-title">Boxplot zeichnen</h2>
+      <p class="boxplot-help">Verschiebe die fünf Markierungen auf der Zahlengeraden. Der Boxplot wird dabei automatisch gezeichnet. Für eine genaue Einstellung kannst du eine Markierung antippen und mit −0,5 bzw. +0,5 verschieben.</p>
+
+      <div class="boxplot-stage">
+        <svg id="boxplotSvg" viewBox="0 0 860 260" role="img" aria-label="Interaktiver Boxplot">
+          <g id="boxplotAxis"></g>
+          <g id="boxplotShape"></g>
+          <g id="boxplotHandles"></g>
+        </svg>
+      </div>
+<div class="boxplot-nudge">
+        <button type="button" class="nudge-btn" id="nudgeLeft">−0,5</button>
+        <button type="button" class="nudge-btn" id="nudgeRight">+0,5</button>
+      </div>
+
+      <div class="boxplot-check-row">
+        <button type="button" class="boxplot-check" id="boxplotCheck">Boxplot prüfen</button>
+      </div>
+      <div class="boxplot-feedback" id="boxplotFeedback" aria-live="polite"></div>
+    </section>
+
+    <div class="feedback" id="feedback" aria-live="polite"></div>
+  </main>
+</div>
+
+<script>
+(() => {
+  const sourceList = document.getElementById('sourceList');
+  const rankList = document.getElementById('rankList');
+  const sourceBox = document.getElementById('sourceBox');
+  const rankBox = document.getElementById('rankBox');
+  const cards = [...document.querySelectorAll('.answer-card')];
+  const currentAnswerEl = document.getElementById('currentAnswer');
+  const checkBtn = document.getElementById('checkBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const feedback = document.getElementById('feedback');
+  const correctEl = document.getElementById('correct');
+  const wrongEl = document.getElementById('wrong');
+  const percentEl = document.getElementById('percent');
+  const boxplotSvg = document.getElementById('boxplotSvg');
+  const boxplotAxis = document.getElementById('boxplotAxis');
+  const boxplotShape = document.getElementById('boxplotShape');
+  const boxplotHandles = document.getElementById('boxplotHandles');
+  const handleButtons = [];
+  const boxplotCheck = document.getElementById('boxplotCheck');
+  const boxplotFeedback = document.getElementById('boxplotFeedback');
+  const nudgeLeft = document.getElementById('nudgeLeft');
+  const nudgeRight = document.getElementById('nudgeRight');
+
+  const order = ['min','max','range','mode','median','q1','q3','mean'];
+  let activeKey='min', inputValue='', hasUnit=false, solved=new Set(), answers={};
+  let correct=0, wrong=0, nextTimer=null, draggedId=null;
+  let items=[];
+  let boxplotSolved=false;
+  let activeHandle='min';
+  let boxScaleMin=-10, boxScaleMax=10;
+  let boxValues={min:-8,q1:-4,median:0,q3:4,max:8};
+  let draggingHandle=null;
+
+  const rint=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+
+  function shuffle(a){
+    for(let i=a.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [a[i],a[j]]=[a[j],a[i]];
+    }
+    return a;
+  }
+
+  function uniqueMode(data){
+    const c=new Map();
+    data.forEach(v=>c.set(v,(c.get(v)||0)+1));
+    let m=0,modes=[];
+    c.forEach((n,v)=>{
+      if(n>m){m=n;modes=[v]}
+      else if(n===m)modes.push(v)
+    });
+    return m>=2 && modes.length===1 ? modes[0] : null;
+  }
+
+  function medianOfSorted(arr){
+    const n=arr.length;
+    return n%2 ? arr[(n-1)/2] : (arr[n/2-1]+arr[n/2])/2;
+  }
+
+  function generateDataset(){
+    for(let attempt=0;attempt<5000;attempt++){
+      const n=rint(6,10), modal=rint(-10,30), repeatCount=rint(2,Math.min(3,n-2));
+      const data=Array(repeatCount).fill(modal);
+
+      while(data.length<n){
+        const v=rint(-15,35);
+        if(v===modal) continue;
+        const count=data.filter(x=>x===v).length;
+        if(count>=repeatCount-1) continue;
+        data.push(v);
+      }
+
+      shuffle(data);
+      const sorted=[...data].sort((a,b)=>a-b);
+      const sum=data.reduce((a,b)=>a+b,0);
+      const mean=sum/n;
+
+      // Möglichst schülerfreundlich: Mittelwert höchstens eine Nachkommastelle.
+      if(Math.abs(mean*10-Math.round(mean*10))>1e-9) continue;
+
+      const mode=uniqueMode(data);
+      if(mode===null) continue;
+
+      const median=medianOfSorted(sorted);
+      const half=Math.floor(n/2);
+      const lowerHalf=sorted.slice(0,half);
+      const upperHalf=sorted.slice(n%2 ? half+1 : half);
+      const q1=medianOfSorted(lowerHalf);
+      const q3=medianOfSorted(upperHalf);
+
+      return {
+        data,
+        answers:{
+          min:sorted[0],
+          max:sorted[sorted.length-1],
+          range:sorted[sorted.length-1]-sorted[0],
+          mode,
+          median,
+          q1,
+          q3,
+          mean
+        }
+      };
+    }
+
+    return {
+      data:[-5,1,7,7,12,20],
+      answers:{min:-5,max:20,range:25,mode:7,median:7,q1:1,q3:12,mean:7}
+    };
+  }
+
+  function fmt(v){
+    return Number.isInteger(v) ? String(v) : String(Math.round(v*10)/10).replace('.',',');
+  }
+
+  function updateStats(){
+    const total=correct+wrong;
+    correctEl.textContent=correct;
+    wrongEl.textContent=wrong;
+    percentEl.textContent=(total ? Math.round(correct/total*100) : 0)+' %';
+  }
+
+  function renderLists(){
+    sourceList.innerHTML='';
+    rankList.innerHTML='';
+
+    items.filter(i=>i.place==='source').forEach(i=>sourceList.appendChild(makeChip(i,false)));
+    items.filter(i=>i.place==='rank').sort((a,b)=>a.rank-b.rank).forEach(i=>rankList.appendChild(makeChip(i,true)));
+  }
+
+  function makeChip(item,inRank){
+    const wrap=document.createElement('div');
+    wrap.dataset.id=item.id;
+
+    const chip=document.createElement('button');
+    chip.type='button';
+    chip.className='temp-chip';
+    chip.draggable=true;
+    chip.textContent=item.value+' °C';
+    chip.title=inRank ? 'Antippen: zurück zur Datenreihe' : 'Antippen: zur Rangliste';
+    chip.addEventListener('click',()=>moveItem(item.id,inRank?'source':'rank'));
+    chip.addEventListener('dragstart',e=>{
+      draggedId=item.id;
+      e.dataTransfer.setData('text/plain',item.id);
+      e.dataTransfer.effectAllowed='move';
+    });
+    wrap.appendChild(chip);
+
+    if(inRank){
+      const controls=document.createElement('div');
+      controls.className='rank-controls';
+
+      const left=document.createElement('button');
+      left.type='button';
+      left.className='rank-move';
+      left.textContent='←';
+      left.setAttribute('aria-label','Nach links verschieben');
+      left.addEventListener('click',e=>{e.stopPropagation();shiftRank(item.id,-1)});
+
+      const right=document.createElement('button');
+      right.type='button';
+      right.className='rank-move';
+      right.textContent='→';
+      right.setAttribute('aria-label','Nach rechts verschieben');
+      right.addEventListener('click',e=>{e.stopPropagation();shiftRank(item.id,1)});
+
+      controls.append(left,right);
+      wrap.appendChild(controls);
+    }
+
+    return wrap;
+  }
+
+  function normalizeRanks(){
+    items.filter(i=>i.place==='rank')
+      .sort((a,b)=>a.rank-b.rank)
+      .forEach((i,idx)=>i.rank=idx);
+  }
+
+  function moveItem(id,target){
+    const item=items.find(i=>i.id===id);
+    if(!item) return;
+
+    if(target==='rank'){
+      const count=items.filter(i=>i.place==='rank').length;
+      item.place='rank';
+      item.rank=count;
+    }else{
+      item.place='source';
+      item.rank=999;
+      normalizeRanks();
+    }
+    renderLists();
+  }
+
+  function shiftRank(id,direction){
+    const ranked=items.filter(i=>i.place==='rank').sort((a,b)=>a.rank-b.rank);
+    const idx=ranked.findIndex(i=>i.id===id);
+    const newIdx=idx+direction;
+    if(idx<0 || newIdx<0 || newIdx>=ranked.length) return;
+    [ranked[idx].rank,ranked[newIdx].rank]=[ranked[newIdx].rank,ranked[idx].rank];
+    renderLists();
+  }
+
+  function setupDropZone(element,target){
+    element.addEventListener('dragover',e=>{
+      e.preventDefault();
+      e.dataTransfer.dropEffect='move';
+    });
+    element.addEventListener('drop',e=>{
+      e.preventDefault();
+      const id=e.dataTransfer.getData('text/plain') || draggedId;
+      if(id) moveItem(id,target);
+      draggedId=null;
+    });
+  }
+
+  setupDropZone(sourceBox,'source');
+  setupDropZone(rankBox,'rank');
+
+
+  const handleOrder=['min','q1','median','q3','max'];
+  const handleLabels={min:'Minimum',q1:'Unteres Quartil',median:'Median',q3:'Oberes Quartil',max:'Maximum'};
+
+  function snapHalf(v){
+    return Math.round(v*2)/2;
+  }
+
+  function xForValue(v){
+    const left=62, right=820;
+    return left + (v-boxScaleMin)/(boxScaleMax-boxScaleMin)*(right-left);
+  }
+
+  function valueForX(x){
+    const left=62, right=820;
+    const clamped=Math.max(left,Math.min(right,x));
+    return snapHalf(boxScaleMin + (clamped-left)/(right-left)*(boxScaleMax-boxScaleMin));
+  }
+
+  function updateHandleButtons(){
+    handleButtons.forEach(btn=>{
+      const k=btn.dataset.handle;
+      btn.classList.toggle('active',k===activeHandle);
+      const val=btn.querySelector('[data-val]');
+      if(val) val.textContent=fmt(boxValues[k])+' °C';
+    });
+  }
+
+  function enforceOrder(key,newValue){
+    const idx=handleOrder.indexOf(key);
+    const lower=idx>0 ? boxValues[handleOrder[idx-1]] : boxScaleMin;
+    const upper=idx<handleOrder.length-1 ? boxValues[handleOrder[idx+1]] : boxScaleMax;
+    return Math.max(lower,Math.min(upper,newValue));
+  }
+
+  function drawBoxplot(){
+    boxplotAxis.innerHTML='';
+    boxplotShape.innerHTML='';
+    boxplotHandles.innerHTML='';
+
+    const ns='http://www.w3.org/2000/svg';
+    const axisY=190, boxTop=92, boxBottom=148, midY=120;
+
+    const axis=document.createElementNS(ns,'line');
+    axis.setAttribute('x1','62'); axis.setAttribute('x2','820');
+    axis.setAttribute('y1',axisY); axis.setAttribute('y2',axisY);
+    axis.setAttribute('stroke','#273444'); axis.setAttribute('stroke-width','3');
+    boxplotAxis.appendChild(axis);
+
+    const tickStart=Math.ceil(boxScaleMin);
+    const tickEnd=Math.floor(boxScaleMax);
+    for(let v=tickStart;v<=tickEnd;v++){
+      const x=xForValue(v);
+      const tick=document.createElementNS(ns,'line');
+      tick.setAttribute('x1',x); tick.setAttribute('x2',x);
+      tick.setAttribute('y1',axisY-7); tick.setAttribute('y2',axisY+7);
+      tick.setAttribute('stroke','#596579'); tick.setAttribute('stroke-width','1.5');
+      boxplotAxis.appendChild(tick);
+
+      const label=document.createElementNS(ns,'text');
+      label.setAttribute('x',x); label.setAttribute('y',axisY+27);
+      label.setAttribute('text-anchor','middle');
+      label.setAttribute('font-family','system-ui, sans-serif');
+      label.setAttribute('font-size','13');
+      label.setAttribute('fill','#596579');
+      label.textContent=v;
+      boxplotAxis.appendChild(label);
+    }
+
+    const unit=document.createElementNS(ns,'text');
+    unit.setAttribute('x','824'); unit.setAttribute('y',axisY+27);
+    unit.setAttribute('font-family','system-ui, sans-serif');
+    unit.setAttribute('font-size','13'); unit.setAttribute('font-weight','700');
+    unit.setAttribute('fill','#596579'); unit.textContent='°C';
+    boxplotAxis.appendChild(unit);
+
+    const xMin=xForValue(boxValues.min), xQ1=xForValue(boxValues.q1),
+          xMed=xForValue(boxValues.median), xQ3=xForValue(boxValues.q3),
+          xMax=xForValue(boxValues.max);
+
+    // whisker line
+    const whisk=document.createElementNS(ns,'line');
+    whisk.setAttribute('x1',xMin); whisk.setAttribute('x2',xMax);
+    whisk.setAttribute('y1',midY); whisk.setAttribute('y2',midY);
+    whisk.setAttribute('stroke','#2f4057'); whisk.setAttribute('stroke-width','3');
+    boxplotShape.appendChild(whisk);
+
+    // box
+    const rect=document.createElementNS(ns,'rect');
+    rect.setAttribute('x',xQ1); rect.setAttribute('y',boxTop);
+    rect.setAttribute('width',Math.max(0,xQ3-xQ1)); rect.setAttribute('height',boxBottom-boxTop);
+    rect.setAttribute('fill','#eef4fb'); rect.setAttribute('stroke','#2f4057'); rect.setAttribute('stroke-width','3');
+    boxplotShape.appendChild(rect);
+
+    // min/max caps and median line
+    [[xMin,boxTop+8,boxBottom-8],[xMax,boxTop+8,boxBottom-8],[xMed,boxTop,boxBottom]].forEach(([x,y1,y2])=>{
+      const l=document.createElementNS(ns,'line');
+      l.setAttribute('x1',x); l.setAttribute('x2',x);
+      l.setAttribute('y1',y1); l.setAttribute('y2',y2);
+      l.setAttribute('stroke','#2f4057'); l.setAttribute('stroke-width','3');
+      boxplotShape.appendChild(l);
+    });
+
+    handleOrder.forEach((key,idx)=>{
+      const x=xForValue(boxValues[key]);
+      const g=document.createElementNS(ns,'g');
+      g.dataset.handle=key;
+      g.style.cursor='ew-resize';
+
+      const hit=document.createElementNS(ns,'rect');
+      hit.setAttribute('x',x-18); hit.setAttribute('y','55');
+      hit.setAttribute('width','36'); hit.setAttribute('height','128');
+      hit.setAttribute('fill','transparent');
+
+      const stem=document.createElementNS(ns,'line');
+      stem.setAttribute('x1',x); stem.setAttribute('x2',x);
+      stem.setAttribute('y1','62'); stem.setAttribute('y2','178');
+      stem.setAttribute('stroke',key===activeHandle?'#2f67b2':'#8793a3');
+      stem.setAttribute('stroke-width',key===activeHandle?'4':'2');
+      stem.setAttribute('stroke-dasharray','5 5');
+
+      const circle=document.createElementNS(ns,'circle');
+      circle.setAttribute('cx',x); circle.setAttribute('cy','62'); circle.setAttribute('r','13');
+      circle.setAttribute('fill',key===activeHandle?'#2f67b2':'#ffffff');
+      circle.setAttribute('stroke','#2f67b2'); circle.setAttribute('stroke-width','3');
+
+      g.append(hit,stem,circle);
+      boxplotHandles.appendChild(g);
+    });
+
+    updateHandleButtons();
+  }
+
+  function setActiveHandle(key){
+    activeHandle=key;
+    drawBoxplot();
+  }
+
+  function setHandleValue(key,value){
+    boxValues[key]=snapHalf(enforceOrder(key,snapHalf(value)));
+    boxplotSolved=false;
+    boxplotFeedback.className='boxplot-feedback';
+    boxplotFeedback.textContent='';
+    drawBoxplot();
+  }
+
+  function resetBoxplot(){
+    boxplotSolved=false;
+    activeHandle='min';
+    boxScaleMin=Math.floor(answers.min)-2;
+    boxScaleMax=Math.ceil(answers.max)+2;
+    if(boxScaleMax-boxScaleMin<8){
+      boxScaleMin-=2; boxScaleMax+=2;
+    }
+
+    const span=boxScaleMax-boxScaleMin;
+    boxValues={
+      min:snapHalf(boxScaleMin+span*0.12),
+      q1:snapHalf(boxScaleMin+span*0.30),
+      median:snapHalf(boxScaleMin+span*0.50),
+      q3:snapHalf(boxScaleMin+span*0.70),
+      max:snapHalf(boxScaleMin+span*0.88)
+    };
+
+    // Guarantee monotonic order after snapping.
+    for(let i=1;i<handleOrder.length;i++){
+      const prev=handleOrder[i-1], cur=handleOrder[i];
+      if(boxValues[cur]<boxValues[prev]) boxValues[cur]=boxValues[prev];
+    }
+
+    boxplotFeedback.className='boxplot-feedback';
+    boxplotFeedback.textContent='';
+    drawBoxplot();
+  }
+
+  function checkBoxplot(){
+    if(boxplotSolved) return;
+    const target={min:answers.min,q1:answers.q1,median:answers.median,q3:answers.q3,max:answers.max};
+    const ok=handleOrder.every(k=>Math.abs(boxValues[k]-target[k])<1e-9);
+
+    if(ok){
+      correct++;
+      boxplotSolved=true;
+      boxplotFeedback.className='boxplot-feedback good';
+      boxplotFeedback.textContent='Richtig – der Boxplot stimmt!';
+      updateStats();
+      if(solved.size===order.length){
+        
+      }
+    }else{
+      wrong++;
+      boxplotFeedback.className='boxplot-feedback bad';
+      boxplotFeedback.textContent='Noch nicht richtig – überprüfe die fünf Positionen.';
+      updateStats();
+    }
+  }
+
+  handleButtons.forEach(btn=>{
+    btn.addEventListener('click',()=>setActiveHandle(btn.dataset.handle));
+  });
+
+  nudgeLeft.addEventListener('click',()=>setHandleValue(activeHandle,boxValues[activeHandle]-0.5));
+  nudgeRight.addEventListener('click',()=>setHandleValue(activeHandle,boxValues[activeHandle]+0.5));
+  boxplotCheck.addEventListener('click',checkBoxplot);
+
+  boxplotSvg.addEventListener('pointerdown',e=>{
+    const g=e.target.closest('[data-handle]');
+    if(!g) return;
+    draggingHandle=g.dataset.handle;
+    activeHandle=draggingHandle;
+    boxplotSvg.setPointerCapture(e.pointerId);
+    drawBoxplot();
+  });
+
+  boxplotSvg.addEventListener('pointermove',e=>{
+    if(!draggingHandle) return;
+    const pt=boxplotSvg.createSVGPoint();
+    pt.x=e.clientX; pt.y=e.clientY;
+    const svgPt=pt.matrixTransform(boxplotSvg.getScreenCTM().inverse());
+    setHandleValue(draggingHandle,valueForX(svgPt.x));
+  });
+
+  function stopDrag(e){
+    if(!draggingHandle) return;
+    draggingHandle=null;
+    try{ boxplotSvg.releasePointerCapture(e.pointerId); }catch(_){}
+  }
+
+  boxplotSvg.addEventListener('pointerup',stopDrag);
+  boxplotSvg.addEventListener('pointercancel',stopDrag);
+
+
+  function selectKey(key){
+    if(solved.has(key)) return;
+    activeKey=key;
+    inputValue='';
+    hasUnit=false;
+    cards.forEach(c=>{
+      c.classList.toggle('active',c.dataset.key===key);
+      if(c.dataset.key===key)c.classList.remove('bad');
+    });
+    currentAnswerEl.textContent='';
+    feedback.className='feedback';
+    feedback.textContent='';
+    resetBoxplot();
+  }
+
+  function makeTask(){
+    if(nextTimer){clearTimeout(nextTimer);nextTimer=null}
+
+    const g=generateDataset();
+    answers=g.answers;
+    solved=new Set();
+    activeKey='min';
+    inputValue='';
+    hasUnit=false;
+
+    items=g.data.map((value,index)=>({
+      id:'v'+Date.now()+'_'+index,
+      value,
+      place:'source',
+      rank:999
+    }));
+    renderLists();
+
+    cards.forEach(c=>{
+      c.className='answer-card';
+      if(c.dataset.key==='min')c.classList.add('active');
+      c.querySelector('.answer-value').textContent='';
+    });
+
+    currentAnswerEl.textContent='';
+    feedback.className='feedback';
+    feedback.textContent='';
+  }
+
+  function displayInput(){
+    currentAnswerEl.textContent = inputValue + (hasUnit ? ' °C' : '');
+  }
+
+  function parseInput(){
+    if(['','-',',','-,'].includes(inputValue))return null;
+    const n=Number(inputValue.replace(',','.'));
+    return Number.isFinite(n)?n:null;
+  }
+
+  function chooseNext(){
+    const i=order.indexOf(activeKey);
+    for(let s=1;s<=order.length;s++){
+      const k=order[(i+s)%order.length];
+      if(!solved.has(k)){selectKey(k);return}
+    }
+  }
+
+  function checkAnswer(){
+    if(solved.has(activeKey))return;
+
+    const value=parseInput();
+    if(value===null){
+      feedback.className='feedback bad';
+      feedback.textContent='Bitte zuerst ein Ergebnis eingeben.';
+      return;
+    }
+
+    const target=answers[activeKey];
+    const card=cards.find(c=>c.dataset.key===activeKey);
+
+    if(!hasUnit){
+      wrong++;
+      card.classList.add('bad');
+      feedback.className='feedback bad';
+      feedback.textContent='Die Einheit °C fehlt.';
+      updateStats();
+      return;
+    }
+
+    if(Math.abs(value-target)<1e-9){
+      correct++;
+      solved.add(activeKey);
+      card.classList.remove('active','bad');
+      card.classList.add('good');
+      card.querySelector('.answer-value').textContent=fmt(target)+' °C';
+      currentAnswerEl.textContent=fmt(target)+' °C';
+      feedback.className='feedback good';
+      feedback.textContent='Richtig!';
+      updateStats();
+
+      if(solved.size===order.length){
+        if(boxplotSolved){
+          feedback.textContent='Alles richtig! Für eine neue Datenreihe auf „Nächste Aufgabe“ tippen.';
+          
+        }else{
+          feedback.textContent='Alle Kennwerte stimmen. Jetzt fehlt noch der Boxplot.';
+        }
+      }else{
+        setTimeout(chooseNext,450);
+      }
+    }else{
+      wrong++;
+      card.classList.add('bad');
+      feedback.className='feedback bad';
+      feedback.textContent='Noch nicht richtig – versuche es noch einmal.';
+      updateStats();
+    }
+  }
+
+  cards.forEach(c=>c.addEventListener('click',()=>selectKey(c.dataset.key)));
+
+  document.querySelectorAll('.key').forEach(b=>b.addEventListener('click',()=>{
+    if(solved.has(activeKey))return;
+
+    const key=b.dataset.input;
+    const card=cards.find(c=>c.dataset.key===activeKey);
+    card.classList.remove('bad');
+    feedback.className='feedback';
+    feedback.textContent='';
+
+    if(key==='clear'){
+      inputValue='';
+      hasUnit=false;
+    }
+    else if(key==='back'){
+      if(hasUnit) hasUnit=false;
+      else inputValue=inputValue.slice(0,-1);
+    }
+    else if(key==='unit'){
+      if(inputValue!=='' && inputValue!=='-' && inputValue!==',' && inputValue!=='-,') hasUnit=true;
+    }
+    else if(key==='minus'){
+      if(!hasUnit) inputValue=inputValue.startsWith('-')?inputValue.slice(1):'-'+inputValue;
+    }
+    else if(key==='comma'){
+      if(!hasUnit && !inputValue.includes(',')){
+        if(inputValue===''||inputValue==='-')inputValue+='0';
+        inputValue+=',';
+      }
+    }else{
+      if(!hasUnit){
+        const digits=inputValue.replace('-','').replace(',','').length;
+        if(digits<4){
+          if(inputValue==='0')inputValue='';
+          if(inputValue==='-0')inputValue='-';
+          inputValue+=key;
+        }
+      }
+    }
+    displayInput();
+  }));
+
+  checkBtn.addEventListener('click',checkAnswer);
+  nextBtn.addEventListener('click',makeTask);
+
+  updateStats();
+  makeTask();
+})();
+</script>
+</body>
+</html>
